@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<!-- =========================
+   STATS
+========================= -->
+<div class="card-grid">
+    <div class="stat-card">
+        <h3>Total Products</h3>
+        <h1>{{ total_products }}</h1>
+    </div>
+
+    <div class="stat-card">
+        <h3>Total Orders</h3>
+        <h1>{{ total_orders }}</h1>
+    </div>
+</div>
+
+<br>
+
+<!-- =========================
+   ACTION BAR
+========================= -->
+<div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+
+    <!-- 🔍 Search -->
+    <input type="text" id="searchInput" class="neu-input" placeholder="Search product...">
+
+    <div class="action-buttons">
+        <a href="/export-csv/"><button class="neu-btn">Export</button></a>
+        <a href="/import-csv/"><button class="neu-btn">Import</button></a>
+    </div>
+</div>
+
+<br>
+
+<!-- =========================
+   CHART (Simple)
+========================= -->
+<div class="glass-card">
+    <h3>Stock Overview</h3>
+    <canvas id="stockChart" height="100"></canvas>
+</div>
+
+<br>
+
+<!-- =========================
+   PRODUCT TABLE
+========================= -->
+<div class="glass-card">
+    <h2>All Products</h2>
+
+    <div class="table-wrapper">
+        <table width="100%" id="productTable">
+
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Batch</th>
+                    <th>Model</th>
+                    <th>Supplier</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for product in products %}
+                <tr>
+
+                    <td>{{ product.name }}</td>
+
+                    <td>₹ {{ product.price }}</td>
+
+                    <!-- 📉 Low Stock Highlight + Inline Edit -->
+                    <td>
+                        <input type="number" value="{{ product.stock }}"
+                            class="stock-input {% if product.stock < 5 %}low-stock{% endif %}"
+                            data-id="{{ product.id }}">
+                    </td>
+
+                    <td>{{ product.batch_number|default:"-" }}</td>
+                    <td>{{ product.model_number|default:"-" }}</td>
+
+                    <td>{{ product.supplier|default:"-" }}</td>
+
+                    <td>
+                        <button class="neu-btn save-btn" data-id="{{ product.id }}">💾</button>
+                        <button class="neu-btn invoice-btn">🧾</button>
+                    </td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+<!-- =========================
+   JAVASCRIPT
+========================= -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+    // 🔍 SEARCH FILTER
+    document.getElementById("searchInput").addEventListener("keyup", function () {
+        let value = this.value.toLowerCase();
+        let rows = document.querySelectorAll("#productTable tbody tr");
+
+        rows.forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(value) ? "" : "none";
+        });
+    });
+
+
+    // ✏️ INLINE STOCK UPDATE
+    document.querySelectorAll(".save-btn").forEach(btn => {
+        btn.addEventListener("click", function () {
+            let id = this.dataset.id;
+            let input = document.querySelector(`input[data-id='${id}']`);
+
+            fetch(`/update-stock/${id}/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ stock: input.value })
+            })
+                .then(res => res.json())
+                .then(data => alert("Stock Updated"));
+        });
+    });
+
+
+    // 📊 SIMPLE CHART
+    let ctx = document.getElementById('stockChart').getContext('2d');
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: [{% for p in products %}"{{ p.name }}",{% endfor %}],
+        datasets: [{
+            label: 'Stock',
+            data: [{% for p in products %}{{ p.stock }}, {% endfor %}],
+        }]
+    }
+});
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="glass-card product-card">
+    <h2>Inventory System Basic Model</h2>
+</div>
+
+<br>
+
+<div class="card-grid">
+
+    {% for product in products %}
+    <div class="glass-card">
+        <h3>{{ product.name }}</h3>
+        <p>₹ {{ product.price }}</p>
+        <p>{{ product.weight_g }} gm</p>
+        <p>Stock: {{ product.stock }}</p>
+
+        <button class="neu-btn">Buy Now</button>
+    </div>
+    {% empty %}
+    <p>No products available</p>
+    {% endfor %}
+
+</div>
+
+{% endblock %}
